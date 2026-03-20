@@ -88,7 +88,8 @@ def home():
 @app.route("/config/<device>", methods=["GET"])
 def api_get_config(device):
     return jsonify(get_device_config(device))
-    @app.route("/movement/<device>")
+    
+@app.route("/movement/<device>")
 def api_movement(device):
     conn = get_db()
     cur = conn.cursor()
