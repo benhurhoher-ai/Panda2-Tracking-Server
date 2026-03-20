@@ -460,5 +460,4 @@ def api_map():
     return Response(html, mimetype="text/html")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    print("Run with gunicorn on Render")
