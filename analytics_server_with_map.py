@@ -297,6 +297,30 @@ def api_map():
 
     loadData();
     setInterval(loadData, 10000);
+
+loadData();
+setInterval(loadData, 10000);
+
+let lastMoving = false;
+
+async function checkMovement() {
+    try {
+        const res = await fetch(`/movement/${device}`);
+        const data = await res.json();
+
+        if (data.moving && !lastMoving) {
+            alert("🚨 BEWEGUNG ERKANNT!");
+        }
+
+        lastMoving = data.moving;
+
+    } catch (e) {
+        console.error("Movement check failed", e);
+    }
+}
+
+// alle 5 Sekunden prüfen
+setInterval(checkMovement, 5000);    
   </script>
 </body>
 </html>"""
