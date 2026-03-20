@@ -121,18 +121,20 @@ def compute_stays(device, stay_radius_m=80, min_stay_sec=180):
     for row in rows[1:]:
         prev = cluster[-1]
         dist = haversine_m(prev[0], prev[1], row[0], row[1])
+
         if dist <= stay_radius_m:
             cluster.append(row)
         else:
             start_ts = cluster[0][3]
             end_ts = cluster[-1][3]
             duration_sec = max(0, (end_ts - start_ts) // 1000)
+
             if duration_sec >= min_stay_sec:
                 avg_lat = sum(p[0] for p in cluster) / len(cluster)
                 avg_lon = sum(p[1] for p in cluster) / len(cluster)
                 address = get_address(avg_lat, avg_lon)
-                    
-              stays.append({
+
+                stays.append({
                     "device": device,
                     "label": cluster_label(avg_lat, avg_lon),
                     "lat": round(avg_lat, 6),
@@ -144,16 +146,18 @@ def compute_stays(device, stay_radius_m=80, min_stay_sec=180):
                     "duration_human": fmt_duration(duration_sec),
                     "point_count": len(cluster)
                 })
+
             cluster = [row]
 
     start_ts = cluster[0][3]
     end_ts = cluster[-1][3]
     duration_sec = max(0, (end_ts - start_ts) // 1000)
+
     if duration_sec >= min_stay_sec:
         avg_lat = sum(p[0] for p in cluster) / len(cluster)
         avg_lon = sum(p[1] for p in cluster) / len(cluster)
         address = get_address(avg_lat, avg_lon)
-        
+
         stays.append({
             "device": device,
             "label": cluster_label(avg_lat, avg_lon),
