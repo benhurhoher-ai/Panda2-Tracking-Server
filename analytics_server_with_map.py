@@ -88,6 +88,39 @@ def home():
 @app.route("/config/<device>", methods=["GET"])
 def api_get_config(device):
     return jsonify(get_device_config(device))
+    @app.route("/movement/<device>")
+def api_movement(device):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT lat, lon, recorded_at
+        FROM location_points
+        WHERE device = ?
+        ORDER BY recorded_at DESC
+        LIMIT 2
+    """, (device,))
+    rows = cur.fetchall()
+    conn.close()
+
+    if len(rows) < 2:
+        return jsonify({"device": device, "moving": False, "distance_m": 0})
+
+    lat1, lon1, ts1 = rows[0]
+    lat2, lon2, ts2 = rows[1]
+
+    from math import radians, sin, cos, sqrt, atan2
+    r = 6371000
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    dist = 2 * r * atan2(sqrt(a), sqrt(1 - a))
+
+    return jsonify({
+        "device": device,
+        "moving": dist > 20,
+        "distance_m": round(dist, 1),
+        "latest_ts": ts1
+    })
 
 @app.route("/location", methods=["POST"])
 def api_location():
