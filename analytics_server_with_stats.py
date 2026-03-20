@@ -90,6 +90,15 @@ def fmt_duration(sec):
 
 def cluster_label(lat, lon):
     return f"{lat:.5f}, {lon:.5f}"
+def get_address(lat, lon):
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json"
+        headers = {"User-Agent": "panda-tracker"}
+        res = requests.get(url, headers=headers, timeout=5)
+        data = res.json()
+        return data.get("display_name", "Unbekannt")
+    except:
+        return "Unbekannt"    
 
 def compute_stays(device, stay_radius_m=80, min_stay_sec=180):
     conn = get_db()
@@ -121,11 +130,14 @@ def compute_stays(device, stay_radius_m=80, min_stay_sec=180):
             if duration_sec >= min_stay_sec:
                 avg_lat = sum(p[0] for p in cluster) / len(cluster)
                 avg_lon = sum(p[1] for p in cluster) / len(cluster)
-                stays.append({
+                address = get_address(avg_lat, avg_lon)
+                    
+              stays.append({
                     "device": device,
                     "label": cluster_label(avg_lat, avg_lon),
                     "lat": round(avg_lat, 6),
                     "lon": round(avg_lon, 6),
+                    "address": address,
                     "start_ts": start_ts,
                     "end_ts": end_ts,
                     "duration_sec": duration_sec,
@@ -140,11 +152,14 @@ def compute_stays(device, stay_radius_m=80, min_stay_sec=180):
     if duration_sec >= min_stay_sec:
         avg_lat = sum(p[0] for p in cluster) / len(cluster)
         avg_lon = sum(p[1] for p in cluster) / len(cluster)
+        address = get_address(avg_lat, avg_lon)
+        
         stays.append({
             "device": device,
             "label": cluster_label(avg_lat, avg_lon),
             "lat": round(avg_lat, 6),
             "lon": round(avg_lon, 6),
+            "address": address,
             "start_ts": start_ts,
             "end_ts": end_ts,
             "duration_sec": duration_sec,
