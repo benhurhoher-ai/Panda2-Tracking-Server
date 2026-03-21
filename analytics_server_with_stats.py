@@ -190,25 +190,10 @@ def api_points():
     rows = cur.fetchall()
     conn.close()
 
-    points = []
-    for r in rows:
-        lat, lon = r[0], r[1]
-        addr = get_address(lat, lon)
-        points.append({
-            "lat": lat,
-            "lon": lon,
-            "address": addr["display_name"],
-            "road": addr["road"],
-            "house_number": addr["house_number"],
-            "postcode": addr["postcode"],
-            "city": addr["city"],
-            "country": addr["country"],
-            "short_address": addr["short_address"]
-        })
-
     return jsonify({
-        "points": points
+        "points": [{"lat": r[0], "lon": r[1]} for r in rows]
     })
+    
 @app.route("/track")
 def api_track():
     device = request.args.get("device")
@@ -225,24 +210,8 @@ def api_track():
     rows = cur.fetchall()
     conn.close()
 
-    track = []
-    for r in rows:
-        lat, lon = r[0], r[1]
-        addr = get_address(lat, lon)
-        track.append({
-            "lat": lat,
-            "lon": lon,
-            "address": addr["display_name"],
-            "road": addr["road"],
-            "house_number": addr["house_number"],
-            "postcode": addr["postcode"],
-            "city": addr["city"],
-            "country": addr["country"],
-            "short_address": addr["short_address"]
-        })
-
     return jsonify({
-        "track": track
+        "track": [{"lat": r[0], "lon": r[1]} for r in rows]
     })
 
 def summarize_places(device, start_ts=None, end_ts=None):
@@ -391,16 +360,9 @@ def api_map():
 
                 pts.forEach(function(p) {
                     var marker = L.marker([p.lat, p.lon]).addTo(map);
-
-                    marker.bindPopup(
-                        "<b>" + (p.short_address || "Unbekannt") + "</b><br>" +
-                        "Straße: " + (p.road || "-") + "<br>" +
-                        "Hausnr: " + (p.house_number || "-") + "<br>" +
-                        "Ort: " + (p.city || "-")
-    );
-
-    bounds.push([p.lat, p.lon]);
-});
+                    marker.bindPopup(String(p.lat) + ", " + String(p.lon));
+                    bounds.push([p.lat, p.lon]);
+                });
                     
                 if (bounds.length > 0) {
                     map.fitBounds(bounds);
