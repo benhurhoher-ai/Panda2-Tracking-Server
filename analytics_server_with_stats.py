@@ -195,4 +195,48 @@ def api_dashboard():
 
     return Response(html, mimetype="text/html")
 
+@app.route("/map")
+def api_map():
+    device = request.args.get("device", "panda2")
+
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Panda Karte</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+        <style>
+            body { margin:0; }
+            #map { height:100vh; }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+
+        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        <script>
+            var device = '__DEVICE__';
+
+            var map = L.map('map').setView([51,10],6);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+            .addTo(map);
+
+            fetch('/stays?device=' + device)
+            .then(r => r.json())
+            .then(data => {
+                (data.stays || []).forEach(p => {
+                    L.marker([p.lat, p.lon]).addTo(map)
+                    .bindPopup(p.address);
+                });
+            });
+        </script>
+    </body>
+    </html>
+    """
+
+    html = html.replace("__DEVICE__", device)
+    return Response(html, mimetype="text/html")
+
 # run via gunicorn
