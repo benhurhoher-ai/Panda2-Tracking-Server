@@ -120,81 +120,161 @@ def stays():
 
 # ===== DASHBOARD =====
 @app.route("/dashboard")
-def dashboard():
-    device=request.args.get("device","panda2")
-    stays=compute_stays(device)
-
-    rows=""
-    for s in stays:
-        rows+=f"<tr><td>{s['address']}</td><td>{s['arrival']}</td><td>{s['departure']}</td><td>{s['duration']}</td></tr>"
-
-    return Response(f"""
-    <html>
-    <body style="font-family:Arial">
-    <h1>Panda Statistik</h1>
-    <a href="/map?device={device}">Karte</a>
-    <table border=1>
-    <tr><th>Adresse</th><th>Ankunft</th><th>Gehen</th><th>Dauer</th></tr>
-    {rows}
-    </table>
-    </body>
-    </html>
-    """, mimetype="text/html")
-
-# ===== MAP =====
-@app.route("/map")
-def api_map():
+def api_dashboard():
     device = request.args.get("device", "panda2")
+    period = request.args.get("period", "all")
+    start_ts, end_ts = day_range(period)
+
+    stays = compute_stays(device, start_ts=start_ts, end_ts=end_ts)
+    places = summarize_places(device, start_ts=start_ts, end_ts=end_ts)
+
+    stays_rows = ""
+    for s in reversed(stays):
+        stays_rows += f"""
+        <tr>
+            <td>{s.get("address", s["label"])}</td>
+            <td>{s["arrival"]}</td>
+            <td>{s["departure"]}</td>
+            <td>{s["duration_human"]}</td>
+        </tr>
+        """
+
+    places_rows = ""
+    for p in places:
+        places_rows += f"""
+        <tr>
+            <td>{p.get("kind", "Ort")}</td>
+            <td>{p["label"]}</td>
+            <td>{p["visit_count"]}</td>
+            <td>{p["total_duration_human"]}</td>
+        </tr>
+        """
+
     html = f"""<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panda Karte</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <title>Panda2 Statistik</title>
   <style>
-    html, body {{
+    body {{
+      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
-      height: 100%;
+      background: #f4f6f8;
+      color: #111;
     }}
-    #map {{
-      height: 100vh;
+    .wrap {{
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }}
+    .top {{
+      background: #111827;
+      color: white;
+      padding: 18px 20px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+    }}
+    .links a {{
+      color: white;
+      margin-right: 12px;
+      text-decoration: none;
+      font-weight: bold;
+    }}
+    .cards {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }}
+    .card {{
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }}
+    h2 {{
+      margin-top: 28px;
+      margin-bottom: 10px;
+    }}
+    table {{
       width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }}
+    th, td {{
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      vertical-align: top;
+    }}
+    th {{
+      background: #f9fafb;
+    }}
+    .muted {{
+      color: #666;
+      font-size: 14px;
     }}
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    const device = "{device}";
-    var map = L.map('map').setView([51, 10], 6);
+  <div class="wrap">
+    <div class="top">
+      <h1>Panda2 Statistik</h1>
+      <div class="muted">Gerät: <b>{device}</b> | Zeitraum: <b>{period}</b></div>
+      <div class="links" style="margin-top:10px;">
+        <a href="/dashboard?device={device}&period=all">Alle</a>
+        <a href="/dashboard?device={device}&period=today">Heute</a>
+        <a href="/dashboard?device={device}&period=yesterday">Gestern</a>
+        <a href="/map?device={device}">Karte</a>
+      </div>
+    </div>
 
-    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
-    }}).addTo(map);
+    <div class="cards">
+      <div class="card">
+        <div class="muted">Aufenthalte</div>
+        <div style="font-size:28px;font-weight:bold;">{len(stays)}</div>
+      </div>
+      <div class="card">
+        <div class="muted">Beliebte Orte</div>
+        <div style="font-size:28px;font-weight:bold;">{len(places)}</div>
+      </div>
+    </div>
 
-    fetch('/stays?device=' + encodeURIComponent(device))
-      .then(r => r.json())
-      .then(data => {{
-        const stays = data.stays || [];
-        stays.forEach(p => {{
-          L.marker([p.lat, p.lon]).addTo(map)
-            .bindPopup(
-              "<b>" + (p.address || "Unbekannt") + "</b><br>" +
-              "Ankunft: " + p.arrival + "<br>" +
-              "Gehen: " + p.departure + "<br>" +
-              "Dauer: " + p.duration_human
-            );
-        }});
+    <h2>Aufenthalte</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Adresse / Ort</th>
+          <th>Ankunft</th>
+          <th>Gehen</th>
+          <th>Dauer</th>
+        </tr>
+      </thead>
+      <tbody>
+        {stays_rows if stays_rows else '<tr><td colspan="4">Noch keine Aufenthalte erkannt</td></tr>'}
+      </tbody>
+    </table>
 
-        if (stays.length > 0) {{
-          map.setView([stays[0].lat, stays[0].lon], 15);
-        }}
-      }});
-  </script>
+    <h2>Beliebte Orte</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Typ</th>
+          <th>Ort</th>
+          <th>Besuche</th>
+          <th>Gesamtdauer</th>
+        </tr>
+      </thead>
+      <tbody>
+        {places_rows if places_rows else '<tr><td colspan="4">Noch keine Orte erkannt</td></tr>'}
+      </tbody>
+    </table>
+  </div>
 </body>
 </html>"""
     return Response(html, mimetype="text/html")
