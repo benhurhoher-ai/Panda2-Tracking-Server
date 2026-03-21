@@ -100,17 +100,31 @@ def get_address(lat, lon):
             "short_address": "Unbekannt"
         }
 # ===== DATA =====
-def get_points(device):
+def get_points(device, start_ts=None, end_ts=None):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT lat, lon, recorded_at FROM location_points WHERE device=? ORDER BY recorded_at", (device,))
+
+    query = "SELECT lat, lon, recorded_at FROM location_points WHERE device=?"
+    params = [device]
+
+    if start_ts is not None:
+        query += " AND recorded_at >= ?"
+        params.append(start_ts)
+
+    if end_ts is not None:
+        query += " AND recorded_at <= ?"
+        params.append(end_ts)
+
+    query += " ORDER BY recorded_at"
+
+    cur.execute(query, tuple(params))
     rows = cur.fetchall()
     conn.close()
     return rows
 
 # ===== STAYS =====
-def compute_stays(device):
-    rows = get_points(device)
+def compute_stays(device, stay_radius_m=80, min_stay_sec=60, start_ts=None, end_ts=None):
+    rows = get_points(device, start_ts, end_ts)
     if not rows: return []
 
     stays=[]
