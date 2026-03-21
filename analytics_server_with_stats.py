@@ -160,10 +160,10 @@ def map_view():
     fetch('/stays?device={device}')
     .then(r=>r.json())
     .then(data=>{
-        data.forEach(p=>{
+        data.forEach(p=>{{
             L.marker([p.lat,p.lon]).addTo(map).bindPopup(p.address);
-        });
-    });
+          }});
+    }});
     </script>
     </body>
     </html>
