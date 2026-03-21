@@ -102,6 +102,19 @@ def compute_stays(device):
     return stays
 
 # ===== ROUTES =====
+
+@app.route("/")
+def home():
+    return {
+        "status": "ok",
+        "message": "Panda Server läuft",
+        "links": {
+            "dashboard": "/dashboard?device=panda2",
+            "map": "/map?device=panda2",
+            "stays": "/stays?device=panda2"
+        }
+    }
+    
 @app.route("/location", methods=["POST"])
 def loc():
     d=request.json
