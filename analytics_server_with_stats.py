@@ -427,58 +427,68 @@ def api_map():
                 attribution: "&copy; OpenStreetMap"
             }).addTo(map);
 
-            fetch("/points?device=" + encodeURIComponent(device))
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                var pts = data.points || [];
-                var bounds = [];
+            var markers = L.layerGroup().addTo(map);
+            var routeLine = null;
+            window._mapInitialized = false;
 
-                pts.forEach(function(p) {
-                    var marker = L.marker([p.lat, p.lon]).addTo(map);
+            function loadLiveMap() {
+                markers.clearLayers();
 
-                    marker.on("click", function() {
-                        fetch("/reverse?lat=" + encodeURIComponent(p.lat) + "&lon=" + encodeURIComponent(p.lon))
-                        .then(function(r) { return r.json(); })
-                        .then(function(addr) {
-                            marker.bindPopup(
-                                "<b>" + (addr.short_address || "Unbekannt") + "</b><br>" +
-                                "Straße: " + (addr.road || "-") + "<br>" +
-                                "Hausnr: " + (addr.house_number || "-") + "<br>" +
-                                "PLZ: " + (addr.postcode || "-") + "<br>" +
-                                "Ort: " + (addr.city || "-")
-                            ).openPopup();
-                        })
-                        .catch(function() {
-                            marker.bindPopup(String(p.lat) + ", " + String(p.lon)).openPopup();
+                fetch("/points?device=" + encodeURIComponent(device))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var pts = data.points || [];
+                    var bounds = [];
+
+                    pts.forEach(function(p) {
+                        var marker = L.marker([p.lat, p.lon]).addTo(markers);
+
+                        marker.on("click", function() {
+                            fetch("/reverse?lat=" + p.lat + "&lon=" + p.lon)
+                            .then(function(r) { return r.json(); })
+                            .then(function(addr) {
+                                marker.bindPopup(
+                                    "<b>" + (addr.short_address || "Unbekannt") + "</b><br>" +
+                                    "Straße: " + (addr.road || "-") + "<br>" +
+                                    "Hausnr: " + (addr.house_number || "-") + "<br>" +
+                                    "Ort: " + (addr.city || "-")
+                                ).openPopup();
+                            });
                         });
+
+                        bounds.push([p.lat, p.lon]);
                     });
 
-                    bounds.push([p.lat, p.lon]);
-                });
-                    
-                if (bounds.length > 0) {
-                    map.fitBounds(bounds);
-                }
-            })
-            .catch(function(err) {
-                console.error("map error:", err);
-                alert("Karte Fehler: " + err);
-            });
+                    fetch("/track?device=" + encodeURIComponent(device))
+                    .then(function(r) { return r.json(); })
+                    .then(function(trackData) {
+                        var coords = (trackData.track || []).map(p => [p.lat, p.lon]);
 
-            fetch('/track?device=' + device)
-            .then(r => r.json())
-            .then(data => {
-                var coords = data.track.map(p => [p.lat, p.lon]);
+                        if (routeLine) {
+                            map.removeLayer(routeLine);
+                        }
 
-                if (coords.length > 1) {
-                    var line = L.polyline(coords, {
-                        color: 'red',
-                        weight: 4
-                    }).addTo(map);
+                        if (coords.length > 1) {
+                            routeLine = L.polyline(coords, {
+                                color: "red",
+                                weight: 4
+                            }).addTo(map);
+                        }
 
-                    map.fitBounds(line.getBounds());
-    }
-});
+                        if (bounds.length > 0 && !window._mapInitialized) {
+                            map.fitBounds(bounds);
+                            window._mapInitialized = true;
+                        }
+                   });
+              });
+           }
+
+           // einmal starten
+           loadLiveMap();
+
+           // alle 5 Sekunden aktualisieren
+           setInterval(loadLiveMap, 5000);
+
         </script>
     </body>
     </html>
