@@ -130,6 +130,26 @@ def loc():
 def stays():
     device=request.args.get("device")
     return jsonify(compute_stays(device))
+    
+@app.route("/points")
+def api_points():
+    device = request.args.get("device")
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT lat, lon
+        FROM location_points
+        WHERE device = ?
+        ORDER BY recorded_at DESC
+        LIMIT 100
+    """, (device,))
+    rows = cur.fetchall()
+    conn.close()
+
+    return jsonify({
+        "points": [{"lat": r[0], "lon": r[1]} for r in rows]
+    })   
 
 # ===== DASHBOARD =====
 @app.route("/dashboard")
@@ -223,11 +243,11 @@ def api_map():
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
             .addTo(map);
 
-            fetch('/stays?device=' + device)
+            fetch('/points?device=' + device)
             .then(r => r.json())
             .then(data => {
-                (data.stays || []).forEach(p => {
-                    L.marker([p.lat, p.lon]).addTo(map)
+                data.points.forEach(p => {
+                    L.marker([p.lat, p.lon]).addTo(map);
                     .bindPopup(p.address);
                 });
             });
