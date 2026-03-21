@@ -149,7 +149,27 @@ def api_points():
 
     return jsonify({
         "points": [{"lat": r[0], "lon": r[1]} for r in rows]
-    })   
+    }) 
+
+@app.route("/track")
+def api_track():
+    device = request.args.get("device")
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT lat, lon
+        FROM location_points
+        WHERE device = ?
+        ORDER BY recorded_at ASC
+        LIMIT 500
+    """, (device,))
+    rows = cur.fetchall()
+    conn.close()
+
+    return jsonify({
+        "track": [{"lat": r[0], "lon": r[1]} for r in rows]
+    })
 
 # ===== DASHBOARD =====
 @app.route("/dashboard")
@@ -271,6 +291,21 @@ def api_map():
                 console.error("map error:", err);
                 alert("Karte Fehler: " + err);
             });
+
+            fetch('/track?device=' + device)
+            .then(r => r.json())
+            .then(data => {
+                var coords = data.track.map(p => [p.lat, p.lon]);
+
+                if (coords.length > 1) {
+                    var line = L.polyline(coords, {
+                        color: 'red',
+                        weight: 4
+                    }).addTo(map);
+
+                    map.fitBounds(line.getBounds());
+    }
+});
         </script>
     </body>
     </html>
