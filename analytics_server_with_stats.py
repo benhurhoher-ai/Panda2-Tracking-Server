@@ -344,8 +344,10 @@ def send_email_alert(subject, body):
         msg["From"] = email_user
         msg["To"] = to_email
 
-        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=10)
+        server.ehlo()
         server.starttls()
+        server.ehlo()
         server.login(email_user, email_pass)
         server.sendmail(email_user, [to_email], msg.as_string())
         server.quit()
