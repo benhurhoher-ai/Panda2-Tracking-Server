@@ -326,6 +326,38 @@ def day_range(filter_name):
         return int(start * 1000), int(end * 1000)
 
     return None, None
+
+def send_email_alert(subject, body):
+    email_user = os.environ.get("EMAIL_USER")
+    email_pass = os.environ.get("EMAIL_PASS")
+    to_email = "benhurhoher@gmail.com"
+
+    if not email_user or not email_pass:
+        return {"ok": False, "error": "EMAIL_USER or EMAIL_PASS missing"}
+
+    try:
+        msg = MIMEText(body, "plain", "utf-8")
+        msg["Subject"] = subject
+        msg["From"] = email_user
+        msg["To"] = to_email
+
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(email_user, email_pass)
+        server.sendmail(email_user, [to_email], msg.as_string())
+        server.quit()
+
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+@app.route("/test-email")
+def test_email():
+    result = send_email_alert(
+        "Panda2 Test Email",
+        "Das ist die erste Email-Benachrichtigung vom Panda2 Tracker."
+    )
+    return jsonify(result)
     
 # ===== DASHBOARD =====
 @app.route("/dashboard")
