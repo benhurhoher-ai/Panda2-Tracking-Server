@@ -50,12 +50,46 @@ def fmt_duration(sec):
 
 def get_address(lat, lon):
     try:
-        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json"
-        r = requests.get(url, headers={"User-Agent":"panda"})
-        return r.json().get("display_name","Unbekannt")
-    except:
-        return "Unbekannt"
+        def get_address(lat, lon):
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&addressdetails=1"
+        headers = {"User-Agent": "panda2-tracker"}
+        res = requests.get(url, headers=headers, timeout=8)
+        data = res.json()
 
+        addr = data.get("address", {})
+        road = addr.get("road", "")
+        house_number = addr.get("house_number", "")
+        postcode = addr.get("postcode", "")
+        city = addr.get("city") or addr.get("town") or addr.get("village") or ""
+        country = addr.get("country", "")
+
+        short_address = " ".join(x for x in [road, house_number] if x).strip()
+        if city:
+            if short_address:
+                short_address += ", " + city
+            else:
+                short_address = city
+
+        return {
+            "display_name": data.get("display_name", "Unbekannt"),
+            "road": road,
+            "house_number": house_number,
+            "postcode": postcode,
+            "city": city,
+            "country": country,
+            "short_address": short_address or "Unbekannt"
+        }
+    except Exception:
+        return {
+            "display_name": "Unbekannt",
+            "road": "",
+            "house_number": "",
+            "postcode": "",
+            "city": "",
+            "country": "",
+            "short_address": "Unbekannt"
+        }
 # ===== DATA =====
 def get_points(device):
     conn = get_db()
@@ -147,10 +181,25 @@ def api_points():
     rows = cur.fetchall()
     conn.close()
 
-    return jsonify({
-        "points": [{"lat": r[0], "lon": r[1]} for r in rows]
-    }) 
+    points = []
+    for r in rows:
+        lat, lon = r[0], r[1]
+        addr = get_address(lat, lon)
+        points.append({
+            "lat": lat,
+            "lon": lon,
+            "address": addr["display_name"],
+            "road": addr["road"],
+            "house_number": addr["house_number"],
+            "postcode": addr["postcode"],
+            "city": addr["city"],
+            "country": addr["country"],
+            "short_address": addr["short_address"]
+        })
 
+    return jsonify({
+        "points": points
+    })
 @app.route("/track")
 def api_track():
     device = request.args.get("device")
@@ -167,10 +216,25 @@ def api_track():
     rows = cur.fetchall()
     conn.close()
 
-    return jsonify({
-        "track": [{"lat": r[0], "lon": r[1]} for r in rows]
-    })
+    track = []
+    for r in rows:
+        lat, lon = r[0], r[1]
+        addr = get_address(lat, lon)
+        track.append({
+            "lat": lat,
+            "lon": lon,
+            "address": addr["display_name"],
+            "road": addr["road"],
+            "house_number": addr["house_number"],
+            "postcode": addr["postcode"],
+            "city": addr["city"],
+            "country": addr["country"],
+            "short_address": addr["short_address"]
+        })
 
+    return jsonify({
+        "track": track
+    })
 # ===== DASHBOARD =====
 @app.route("/dashboard")
 def api_dashboard():
@@ -279,10 +343,17 @@ def api_map():
 
                 pts.forEach(function(p) {
                     var marker = L.marker([p.lat, p.lon]).addTo(map);
-                    marker.bindPopup(String(p.lat) + ", " + String(p.lon));
-                    bounds.push([p.lat, p.lon]);
-                });
 
+                    marker.bindPopup(
+                        "<b>" + (p.short_address || "Unbekannt") + "</b><br>" +
+                        "Straße: " + (p.road || "-") + "<br>" +
+                        "Hausnr: " + (p.house_number || "-") + "<br>" +
+                        "Ort: " + (p.city || "-")
+    );
+
+    bounds.push([p.lat, p.lon]);
+});
+                    
                 if (bounds.length > 0) {
                     map.fitBounds(bounds);
                 }
