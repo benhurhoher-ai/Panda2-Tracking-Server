@@ -262,6 +262,23 @@ def summarize_places(device, start_ts=None, end_ts=None):
         r["kind"] = "Ort"
 
     return result
+
+def day_range(filter_name):
+    now = int(time.time())
+    lt = time.localtime(now)
+
+    if filter_name == "today":
+        start = time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, lt.tm_wday, lt.tm_yday, lt.tm_isdst))
+        end = start + 86400 - 1
+        return int(start * 1000), int(end * 1000)
+
+    if filter_name == "yesterday":
+        today_start = time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, lt.tm_wday, lt.tm_yday, lt.tm_isdst))
+        start = today_start - 86400
+        end = today_start - 1
+        return int(start * 1000), int(end * 1000)
+
+    return None, None
     
 # ===== DASHBOARD =====
 @app.route("/dashboard")
