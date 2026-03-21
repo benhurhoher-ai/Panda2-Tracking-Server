@@ -244,6 +244,45 @@ def api_track():
     return jsonify({
         "track": track
     })
+
+def summarize_places(device, start_ts=None, end_ts=None):
+    stays = compute_stays(device, start_ts=start_ts, end_ts=end_ts)
+    places = {}
+
+    for s in stays:
+        key = s.get("address") or s.get("label")
+        if key not in places:
+            places[key] = {
+                "label": key,
+                "lat": s["lat"],
+                "lon": s["lon"],
+                "visit_count": 0,
+                "total_duration_sec": 0,
+                "last_arrival": s["arrival"],
+                "last_departure": s["departure"]
+            }
+
+        places[key]["visit_count"] += 1
+        places[key]["total_duration_sec"] += s["duration_sec"]
+        places[key]["last_arrival"] = s["arrival"]
+        places[key]["last_departure"] = s["departure"]
+
+    result = []
+    for v in places.values():
+        v["total_duration_human"] = fmt_duration(v["total_duration_sec"])
+        result.append(v)
+
+    result.sort(key=lambda x: x["total_duration_sec"], reverse=True)
+
+    if len(result) > 0:
+        result[0]["kind"] = "Zuhause"
+    if len(result) > 1:
+        result[1]["kind"] = "Arbeit"
+    for r in result[2:]:
+        r["kind"] = "Ort"
+
+    return result
+    
 # ===== DASHBOARD =====
 @app.route("/dashboard")
 def api_dashboard():
