@@ -123,38 +123,71 @@ def get_points(device, start_ts=None, end_ts=None):
     return rows
 
 # ===== STAYS =====
-def compute_stays(device, stay_radius_m=80, min_stay_sec=60, start_ts=None, end_ts=None):
+def compute_stays(device, stay_radius_m=80, min_stay_sec=10, start_ts=None, end_ts=None):
     rows = get_points(device, start_ts, end_ts)
-    if not rows: return []
 
-    stays=[]
-    cluster=[rows[0]]
+    if not rows:
+        return []
+
+    stays = []
+    cluster = [rows[0]]
 
     for row in rows[1:]:
         prev = cluster[-1]
-        dist = haversine_m(prev[0],prev[1],row[0],row[1])
+        dist = haversine_m(prev[0], prev[1], row[0], row[1])
 
-        if dist < 80:
+        if dist <= stay_radius_m:
             cluster.append(row)
         else:
-            start = cluster[0][2]
-            end = cluster[-1][2]
-            dur = (end-start)//1000
+            start_ts_cluster = cluster[0][2]
+            end_ts_cluster = cluster[-1][2]
+            duration_sec = max(0, (end_ts_cluster - start_ts_cluster) // 1000)
 
-            if dur > 60:
-                lat = sum(p[0] for p in cluster)/len(cluster)
-                lon = sum(p[1] for p in cluster)/len(cluster)
-                addr = get_address(lat,lon)
+            if duration_sec >= min_stay_sec:
+                avg_lat = sum(p[0] for p in cluster) / len(cluster)
+                avg_lon = sum(p[1] for p in cluster) / len(cluster)
+                addr = get_address(avg_lat, avg_lon)
 
                 stays.append({
-                    "address": addr,
-                    "arrival": fmt_ts(start),
-                    "departure": fmt_ts(end),
-                    "duration": fmt_duration(dur),
-                    "lat": lat,
-                    "lon": lon
+                    "device": device,
+                    "label": addr.get("short_address") or f"{avg_lat:.5f}, {avg_lon:.5f}",
+                    "address": addr.get("display_name", "Unbekannt"),
+                    "lat": round(avg_lat, 6),
+                    "lon": round(avg_lon, 6),
+                    "arrival": fmt_ts(start_ts_cluster),
+                    "departure": fmt_ts(end_ts_cluster),
+                    "start_ts": start_ts_cluster,
+                    "end_ts": end_ts_cluster,
+                    "duration_sec": duration_sec,
+                    "duration_human": fmt_duration(duration_sec),
+                    "point_count": len(cluster)
                 })
-            cluster=[row]
+
+            cluster = [row]
+
+    start_ts_cluster = cluster[0][2]
+    end_ts_cluster = cluster[-1][2]
+    duration_sec = max(0, (end_ts_cluster - start_ts_cluster) // 1000)
+
+    if duration_sec >= min_stay_sec:
+        avg_lat = sum(p[0] for p in cluster) / len(cluster)
+        avg_lon = sum(p[1] for p in cluster) / len(cluster)
+        addr = get_address(avg_lat, avg_lon)
+
+        stays.append({
+            "device": device,
+            "label": addr.get("short_address") or f"{avg_lat:.5f}, {avg_lon:.5f}",
+            "address": addr.get("display_name", "Unbekannt"),
+            "lat": round(avg_lat, 6),
+            "lon": round(avg_lon, 6),
+            "arrival": fmt_ts(start_ts_cluster),
+            "departure": fmt_ts(end_ts_cluster),
+            "start_ts": start_ts_cluster,
+            "end_ts": end_ts_cluster,
+            "duration_sec": duration_sec,
+            "duration_human": fmt_duration(duration_sec),
+            "point_count": len(cluster)
+        })
 
     return stays
 
