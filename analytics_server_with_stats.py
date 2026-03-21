@@ -151,46 +151,35 @@ def api_dashboard():
         """
 
     html = """
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Panda Statistik</title>
-  <style>
-    body { font-family: Arial; margin:20px; }
-    table { border-collapse: collapse; width:100%; }
-    th, td { border:1px solid #ccc; padding:8px; }
-  </style>
-</head>
-<body>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Panda Statistik</title>
+      <style>
+        body { font-family: Arial; margin:20px; }
+        table { border-collapse: collapse; width:100%; }
+        th, td { border:1px solid #ccc; padding:8px; }
+      </style>
+    </head>
+    <body>
 
-<h1>Aufenthalte</h1>
-<table>
-<tr>
-<th>Adresse</th>
-<th>Ankunft</th>
-<th>Gehen</th>
-<th>Dauer</th>
-</tr>
-""" + stays_rows + """
+    <h1>Aufenthalte</h1>
+    <table>
+    <tr><th>Adresse</th><th>Ankunft</th><th>Gehen</th><th>Dauer</th></tr>
+    """ + stays_rows + """
+    </table>
 
-</table>
+    <h1>Orte</h1>
+    <table>
+    <tr><th>Typ</th><th>Ort</th><th>Besuche</th><th>Dauer</th></tr>
+    """ + places_rows + """
+    </table>
 
-<h1>Orte</h1>
-<table>
-<tr>
-<th>Typ</th>
-<th>Ort</th>
-<th>Besuche</th>
-<th>Dauer</th>
-</tr>
-""" + places_rows + """
+    </body>
+    </html>
+    """
 
-</table>
-
-</body>
-</html>
-"""
-return Response(html, mimetype="text/html")
+    return Response(html, mimetype="text/html")
 
 # run via gunicorn
