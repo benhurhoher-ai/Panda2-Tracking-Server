@@ -227,8 +227,15 @@ def api_map():
         <title>Panda Karte</title>
         <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
         <style>
-            body { margin:0; }
-            #map { height:100vh; }
+            html, body {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+            }
+            #map {
+                height: 100vh;
+                width: 100%;
+            }
         </style>
     </head>
     <body>
@@ -236,20 +243,33 @@ def api_map():
 
         <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
         <script>
-            var device = '__DEVICE__';
+            var device = "__DEVICE__";
+            var map = L.map("map").setView([51, 10], 6);
 
-            var map = L.map('map').setView([51,10],6);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap"
+            }).addTo(map);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-            .addTo(map);
+            fetch("/points?device=" + encodeURIComponent(device))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var pts = data.points || [];
+                var bounds = [];
 
-            fetch('/points?device=' + device)
-            .then(r => r.json())
-            .then(data => {
-                data.points.forEach(p => {
-                    L.marker([p.lat, p.lon]).addTo(map);
-                    .bindPopup(p.address);
+                pts.forEach(function(p) {
+                    var marker = L.marker([p.lat, p.lon]).addTo(map);
+                    marker.bindPopup(String(p.lat) + ", " + String(p.lon));
+                    bounds.push([p.lat, p.lon]);
                 });
+
+                if (bounds.length > 0) {
+                    map.fitBounds(bounds);
+                }
+            })
+            .catch(function(err) {
+                console.error("map error:", err);
+                alert("Karte Fehler: " + err);
             });
         </script>
     </body>
