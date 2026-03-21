@@ -4,6 +4,9 @@ from flask_cors import CORS
 import sqlite3, time, os, requests
 from math import radians, sin, cos, sqrt, atan2
 
+import smtplib
+from email.mime.text import MIMEText
+
 app = Flask(__name__)
 CORS(app)
 
