@@ -50,8 +50,6 @@ def fmt_duration(sec):
 
 def get_address(lat, lon):
     try:
-        def get_address(lat, lon):
-    try:
         url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&addressdetails=1"
         headers = {"User-Agent": "panda2-tracker"}
         res = requests.get(url, headers=headers, timeout=8)
@@ -79,6 +77,17 @@ def get_address(lat, lon):
             "city": city,
             "country": country,
             "short_address": short_address or "Unbekannt"
+        }
+
+    except Exception:
+        return {
+            "display_name": "Unbekannt",
+            "road": "",
+            "house_number": "",
+            "postcode": "",
+            "city": "",
+            "country": "",
+            "short_address": "Unbekannt"
         }
     except Exception:
         return {
