@@ -150,133 +150,47 @@ def api_dashboard():
         </tr>
         """
 
-    html = f"""<!DOCTYPE html>
+    html = """
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panda2 Statistik</title>
+  <title>Panda Statistik</title>
   <style>
-    body {{
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: #f4f6f8;
-      color: #111;
-    }}
-    .wrap {{
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-    }}
-    .top {{
-      background: #111827;
-      color: white;
-      padding: 18px 20px;
-      border-radius: 14px;
-      margin-bottom: 20px;
-    }}
-    .links a {{
-      color: white;
-      margin-right: 12px;
-      text-decoration: none;
-      font-weight: bold;
-    }}
-    .cards {{
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
-    }}
-    .card {{
-      background: white;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }}
-    h2 {{
-      margin-top: 28px;
-      margin-bottom: 10px;
-    }}
-    table {{
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      margin-bottom: 24px;
-    }}
-    th, td {{
-      padding: 12px;
-      border-bottom: 1px solid #e5e7eb;
-      text-align: left;
-      vertical-align: top;
-    }}
-    th {{
-      background: #f9fafb;
-    }}
-    .muted {{
-      color: #666;
-      font-size: 14px;
-    }}
+    body { font-family: Arial; margin:20px; }
+    table { border-collapse: collapse; width:100%; }
+    th, td { border:1px solid #ccc; padding:8px; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="top">
-      <h1>Panda2 Statistik</h1>
-      <div class="muted">Gerät: <b>{device}</b> | Zeitraum: <b>{period}</b></div>
-      <div class="links" style="margin-top:10px;">
-        <a href="/dashboard?device={device}&period=all">Alle</a>
-        <a href="/dashboard?device={device}&period=today">Heute</a>
-        <a href="/dashboard?device={device}&period=yesterday">Gestern</a>
-        <a href="/map?device={device}">Karte</a>
-      </div>
-    </div>
 
-    <div class="cards">
-      <div class="card">
-        <div class="muted">Aufenthalte</div>
-        <div style="font-size:28px;font-weight:bold;">{len(stays)}</div>
-      </div>
-      <div class="card">
-        <div class="muted">Beliebte Orte</div>
-        <div style="font-size:28px;font-weight:bold;">{len(places)}</div>
-      </div>
-    </div>
+<h1>Aufenthalte</h1>
+<table>
+<tr>
+<th>Adresse</th>
+<th>Ankunft</th>
+<th>Gehen</th>
+<th>Dauer</th>
+</tr>
+""" + stays_rows + """
 
-    <h2>Aufenthalte</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Adresse / Ort</th>
-          <th>Ankunft</th>
-          <th>Gehen</th>
-          <th>Dauer</th>
-        </tr>
-      </thead>
-      <tbody>
-        {stays_rows if stays_rows else '<tr><td colspan="4">Noch keine Aufenthalte erkannt</td></tr>'}
-      </tbody>
-    </table>
+</table>
 
-    <h2>Beliebte Orte</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Typ</th>
-          <th>Ort</th>
-          <th>Besuche</th>
-          <th>Gesamtdauer</th>
-        </tr>
-      </thead>
-      <tbody>
-        {places_rows if places_rows else '<tr><td colspan="4">Noch keine Orte erkannt</td></tr>'}
-      </tbody>
-    </table>
-  </div>
+<h1>Orte</h1>
+<table>
+<tr>
+<th>Typ</th>
+<th>Ort</th>
+<th>Besuche</th>
+<th>Dauer</th>
+</tr>
+""" + places_rows + """
+
+</table>
+
 </body>
-</html>"""
-    return Response(html, mimetype="text/html")
+</html>
+"""
+return Response(html, mimetype="text/html")
 
 # run via gunicorn
