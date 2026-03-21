@@ -143,30 +143,60 @@ def dashboard():
 
 # ===== MAP =====
 @app.route("/map")
-def map_view():
-    device=request.args.get("device","panda2")
-    return Response(f"""
-    <html>
-    <head>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-    </head>
-    <body>
-    <div id="map" style="height:100vh"></div>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>
-    var map=L.map('map').setView([51,10],6);
-    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(map);
+def api_map():
+    device = request.args.get("device", "panda2")
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panda Karte</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    html, body {{
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }}
+    #map {{
+      height: 100vh;
+      width: 100%;
+    }}
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const device = "{device}";
+    var map = L.map('map').setView([51, 10], 6);
 
-    fetch('/stays?device={device}')
-    .then(r=>r.json())
-    .then(data=>{{
-        data.forEach(p=>{{
-            L.marker([p.lat,p.lon]).addTo(map).bindPopup(p.address);
-          }});
-    }});
-    </script>
-    </body>
-    </html>
-    """, mimetype="text/html")
+    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }}).addTo(map);
+
+    fetch('/stays?device=' + encodeURIComponent(device))
+      .then(r => r.json())
+      .then(data => {{
+        const stays = data.stays || [];
+        stays.forEach(p => {{
+          L.marker([p.lat, p.lon]).addTo(map)
+            .bindPopup(
+              "<b>" + (p.address || "Unbekannt") + "</b><br>" +
+              "Ankunft: " + p.arrival + "<br>" +
+              "Gehen: " + p.departure + "<br>" +
+              "Dauer: " + p.duration_human
+            );
+        }});
+
+        if (stays.length > 0) {{
+          map.setView([stays[0].lat, stays[0].lon], 15);
+        }}
+      }});
+  </script>
+</body>
+</html>"""
+    return Response(html, mimetype="text/html")
 
 # run via gunicorn
