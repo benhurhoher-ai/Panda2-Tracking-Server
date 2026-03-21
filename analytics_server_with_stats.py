@@ -159,7 +159,7 @@ def map_view():
 
     fetch('/stays?device={device}')
     .then(r=>r.json())
-    .then(data=>{
+    .then(data=>{{
         data.forEach(p=>{{
             L.marker([p.lat,p.lon]).addTo(map).bindPopup(p.address);
           }});
