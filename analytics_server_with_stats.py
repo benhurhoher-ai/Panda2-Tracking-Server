@@ -193,6 +193,17 @@ def api_points():
     return jsonify({
         "points": [{"lat": r[0], "lon": r[1]} for r in rows]
     })
+
+@app.route("/reverse")
+def api_reverse():
+    lat = request.args.get("lat", type=float)
+    lon = request.args.get("lon", type=float)
+
+    if lat is None or lon is None:
+        return jsonify({"error": "missing lat/lon"}), 400
+
+    addr = get_address(lat, lon)
+    return jsonify(addr)
     
 @app.route("/track")
 def api_track():
@@ -360,7 +371,24 @@ def api_map():
 
                 pts.forEach(function(p) {
                     var marker = L.marker([p.lat, p.lon]).addTo(map);
-                    marker.bindPopup(String(p.lat) + ", " + String(p.lon));
+
+                    marker.on("click", function() {
+                        fetch("/reverse?lat=" + encodeURIComponent(p.lat) + "&lon=" + encodeURIComponent(p.lon))
+                        .then(function(r) { return r.json(); })
+                        .then(function(addr) {
+                            marker.bindPopup(
+                                "<b>" + (addr.short_address || "Unbekannt") + "</b><br>" +
+                                "Straße: " + (addr.road || "-") + "<br>" +
+                                "Hausnr: " + (addr.house_number || "-") + "<br>" +
+                                "PLZ: " + (addr.postcode || "-") + "<br>" +
+                                "Ort: " + (addr.city || "-")
+                            ).openPopup();
+                        })
+                        .catch(function() {
+                            marker.bindPopup(String(p.lat) + ", " + String(p.lon)).openPopup();
+                        });
+                    });
+
                     bounds.push([p.lat, p.lon]);
                 });
                     
