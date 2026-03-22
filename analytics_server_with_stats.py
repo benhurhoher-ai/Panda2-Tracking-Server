@@ -332,6 +332,7 @@ def day_range(filter_name):
 
 def send_email_alert(subject, body):
     api_key = os.environ.get("RESEND_API_KEY")
+
     if not api_key:
         return {"ok": False, "error": "RESEND_API_KEY missing"}
 
@@ -354,7 +355,13 @@ def send_email_alert(subject, body):
             headers=headers,
             timeout=15
         )
-        return {"ok": r.ok, "status_code": r.status_code, "response": r.text}
+
+        return {
+            "ok": r.ok,
+            "status": r.status_code,
+            "response": r.text
+        }
+
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -362,7 +369,7 @@ def send_email_alert(subject, body):
 def test_email():
     result = send_email_alert(
         "Panda2 Test Email",
-        "Das ist die erste Email-Benachrichtigung vom Panda2 Tracker."
+        "Das ist deine erste funktionierende Email 🚀"
     )
     return jsonify(result)
     
