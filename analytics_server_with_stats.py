@@ -331,28 +331,30 @@ def day_range(filter_name):
     return None, None
 
 def send_email_alert(subject, body):
-    email_user = os.environ.get("EMAIL_USER")
-    email_pass = os.environ.get("EMAIL_PASS")
-    to_email = "benhurhoher@gmail.com"
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        return {"ok": False, "error": "RESEND_API_KEY missing"}
 
-    if not email_user or not email_pass:
-        return {"ok": False, "error": "EMAIL_USER or EMAIL_PASS missing"}
+    payload = {
+        "from": "onboarding@resend.dev",
+        "to": ["benhurhoher@gmail.com"],
+        "subject": subject,
+        "text": body
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
 
     try:
-        msg = MIMEText(body, "plain", "utf-8")
-        msg["Subject"] = subject
-        msg["From"] = email_user
-        msg["To"] = to_email
-
-        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=10)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(email_user, email_pass)
-        server.sendmail(email_user, [to_email], msg.as_string())
-        server.quit()
-
-        return {"ok": True}
+        r = requests.post(
+            "https://api.resend.com/emails",
+            json=payload,
+            headers=headers,
+            timeout=15
+        )
+        return {"ok": r.ok, "status_code": r.status_code, "response": r.text}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
